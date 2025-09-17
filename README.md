@@ -31,6 +31,6 @@ It highlights events with suspicious application or module names/paths based on 
 
 ### 1. Clone or download the script
 ```powershell
-git clone https://github.com/yourusername/event-keyword-parser.git
+git clone https://github.com/RitzySixx/Suspicious-EVX-Parser.git
 cd event-keyword-parser
 
