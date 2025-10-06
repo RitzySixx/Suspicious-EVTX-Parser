@@ -1,146 +1,290 @@
 # Load required assemblies
-Add-Type -AssemblyName PresentationFramework, PresentationCore, WindowsBase
+Add-Type -AssemblyName PresentationFramework, PresentationCore, WindowsBase, System.Drawing
 
-# Define XAML for the WPF GUI
+# Define XAML for the modern WPF GUI
 $xaml = @'
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Key Word Event Viewer Parser" Width="1000" Height="700"
+        Title="Suspicious Event Parser" Width="1200" Height="800"
         WindowStyle="None" AllowsTransparency="True" Background="Transparent"
-        ResizeMode="CanResizeWithGrip">
-    <Border Background="#FF252526" CornerRadius="12" BorderBrush="#FF3F3F41" BorderThickness="1">
+        ResizeMode="CanResizeWithGrip" FontFamily="Segoe UI">
+        
+    <Window.Resources>
+        <DropShadowEffect x:Key="ShadowEffect" ShadowDepth="2" Direction="320" Color="Black" Opacity="0.3" BlurRadius="10"/>
+        <Style x:Key="RoundedButtonStyle" TargetType="Button">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Border" Background="{TemplateBinding Background}" CornerRadius="3" Padding="{TemplateBinding Padding}" BorderThickness="{TemplateBinding BorderThickness}" BorderBrush="{TemplateBinding BorderBrush}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Border" Property="Background" Value="#FF404040"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Border" Property="Background" Value="#FF303030"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="RoundedTextBoxStyle" TargetType="TextBox">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TextBox">
+                        <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="3">
+                            <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+        
+    <Border Background="#FF1E1E1E" CornerRadius="10" BorderBrush="#FF404040" BorderThickness="1"
+            Effect="{StaticResource ShadowEffect}">
         <Grid>
             <Grid.RowDefinitions>
-                <RowDefinition Height="35"/>
+                <RowDefinition Height="45"/>
+                <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
-                <RowDefinition Height="25"/>
+                <RowDefinition Height="35"/>
             </Grid.RowDefinitions>
             
-            <!-- Title Bar -->
-            <Grid Grid.Row="0" Background="#FF1B1B1C">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
-                
-                <TextBlock Text="Key Word Parser - Application Errors &amp; Hangs" Foreground="#FFE4E4E4" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center" Margin="15,0,0,0"/>
-                
-                <StackPanel Grid.Column="1" Orientation="Horizontal">
-                    <Button x:Name="RefreshButton" Content="↻" Width="40" Height="35" Background="Transparent" Foreground="#FFE4E4E4" BorderThickness="0" FontSize="16" ToolTip="Refresh Events"/>
-                    <Button x:Name="MinimizeButton" Content="_" Width="40" Height="35" Background="Transparent" Foreground="#FFE4E4E4" BorderThickness="0" FontSize="16"/>
-                    <Button x:Name="MaximizeButton" Content="□" Width="40" Height="35" Background="Transparent" Foreground="#FFE4E4E4" BorderThickness="0" FontSize="16"/>
-                    <Button x:Name="CloseButton" Content="X" Width="40" Height="35" Background="Transparent" Foreground="#FFE4E4E4" BorderThickness="0" FontSize="16"/>
-                </StackPanel>
-            </Grid>
-            
-            <!-- Main Content -->
-            <Grid Grid.Row="1" Margin="15">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="*"/>
-                </Grid.RowDefinitions>
-                
-                <TextBlock Grid.Row="0" Text="Filtered Events (ID 1000 &amp; 1002) - Suspicious Paths &amp; Filenames for Cheats" Foreground="#FFE4E4E4" FontSize="18" FontWeight="Bold" Margin="0,0,0,10"/>
-                
-                <Grid Grid.Row="1" Margin="0,0,0,10">
+            <!-- Modern Title Bar -->
+            <Border Grid.Row="0" Background="#FF2D2D30" CornerRadius="10,10,0,0">
+                <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
-                    <TextBlock Grid.Column="0" Text="Search:" Foreground="#FFE4E4E4" FontSize="14" VerticalAlignment="Center" Margin="0,0,10,0"/>
-                    <TextBox x:Name="SearchBox" Grid.Column="1" Background="#FF1E1E1E" Foreground="#FFE4E4E4" BorderBrush="#FF3F3F41" BorderThickness="1" FontSize="12" Padding="5"/>
+                    
+                    <!-- App Icon and Title -->
+                    <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="15,0,0,0">
+                        <TextBlock Text="🔍" FontSize="16" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                        <TextBlock Text="Suspicious Event Parser" Foreground="#FFFFFFFF" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                    </StackPanel>
+                    
+                    <!-- Window Controls -->
+                    <StackPanel Grid.Column="2" Orientation="Horizontal">
+                        <Button x:Name="MinimizeButton" Content="─" Width="35" Height="30" Background="Transparent" 
+                                Foreground="#FFCCCCCC" BorderThickness="0" FontSize="12" FontWeight="Bold"
+                                ToolTip="Minimize"/>
+                        <Button x:Name="MaximizeButton" Content="□" Width="35" Height="30" Background="Transparent" 
+                                Foreground="#FFCCCCCC" BorderThickness="0" FontSize="12"
+                                ToolTip="Maximize"/>
+                        <Button x:Name="CloseButton" Content="✕" Width="35" Height="30" Background="Transparent" 
+                                Foreground="#FFCCCCCC" BorderThickness="0" FontSize="12" FontWeight="SemiBold"
+                                ToolTip="Close"/>
+                    </StackPanel>
                 </Grid>
-                
-                <ListView x:Name="EventsListView" Grid.Row="2" Background="#FF1E1E1E" Foreground="#FFE4E4E4" BorderBrush="#FF3F3F41" BorderThickness="1" ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Auto">
-                    <ListView.Resources>
-                        <Style TargetType="ListViewItem">
-                            <Setter Property="Background" Value="Transparent"/>
-                            <Setter Property="BorderThickness" Value="0"/>
-                            <Setter Property="Padding" Value="5"/>
-                            <Setter Property="Margin" Value="0,2,0,2"/>
-                            <Setter Property="ContextMenu">
-                                <Setter.Value>
-                                    <ContextMenu>
-                                        <MenuItem Header="Copy App Name"/>
-                                        <MenuItem Header="Copy App Path"/>
-                                        <MenuItem Header="Copy Module Name"/>
-                                        <MenuItem Header="Copy Module Path"/>
-                                        <MenuItem Header="Copy Full Message"/>
-                                    </ContextMenu>
-                                </Setter.Value>
-                            </Setter>
-                            <Style.Triggers>
-                                <Trigger Property="ItemsControl.AlternationIndex" Value="0">
-                                    <Setter Property="Background" Value="#FF2A2A2B"/>
-                                </Trigger>
-                                <Trigger Property="ItemsControl.AlternationIndex" Value="1">
-                                    <Setter Property="Background" Value="#FF252526"/>
-                                </Trigger>
-                            </Style.Triggers>
-                        </Style>
-                    </ListView.Resources>
-                    <ListView.View>
-                        <GridView>
-                            <GridViewColumn Header="Time Created" Width="160">
-                                <GridViewColumn.CellTemplate>
-                                    <DataTemplate>
-                                        <TextBlock Text="{Binding TimeCreated}" Foreground="#FFE4E4E4" FontSize="12"/>
-                                    </DataTemplate>
-                                </GridViewColumn.CellTemplate>
-                            </GridViewColumn>
-                            <GridViewColumn Header="Event ID" Width="80">
-                                <GridViewColumn.CellTemplate>
-                                    <DataTemplate>
-                                        <TextBlock Text="{Binding Id}" Foreground="#FFE4E4E4" FontSize="12"/>
-                                    </DataTemplate>
-                                </GridViewColumn.CellTemplate>
-                            </GridViewColumn>
-                            <GridViewColumn Header="Application Name" Width="200">
-                                <GridViewColumn.CellTemplate>
-                                    <DataTemplate>
-                                        <TextBlock Text="{Binding AppName}" Foreground="#FFE4E4E4" FontSize="12" TextWrapping="Wrap" ToolTip="{Binding AppName}"/>
-                                    </DataTemplate>
-                                </GridViewColumn.CellTemplate>
-                            </GridViewColumn>
-                            <GridViewColumn Header="Application Path" Width="300">
-                                <GridViewColumn.CellTemplate>
-                                    <DataTemplate>
-                                        <TextBlock Text="{Binding AppPath}" Foreground="#FFE4E4E4" FontSize="12" TextWrapping="Wrap" ToolTip="{Binding AppPath}"/>
-                                    </DataTemplate>
-                                </GridViewColumn.CellTemplate>
-                            </GridViewColumn>
-                            <GridViewColumn Header="Module Name" Width="200">
-                                <GridViewColumn.CellTemplate>
-                                    <DataTemplate>
-                                        <TextBlock Text="{Binding ModuleName}" Foreground="#FFE4E4E4" FontSize="12" TextWrapping="Wrap" ToolTip="{Binding ModuleName}"/>
-                                    </DataTemplate>
-                                </GridViewColumn.CellTemplate>
-                            </GridViewColumn>
-                            <GridViewColumn Header="Module Path" Width="300">
-                                <GridViewColumn.CellTemplate>
-                                    <DataTemplate>
-                                        <TextBlock Text="{Binding ModulePath}" Foreground="#FFE4E4E4" FontSize="12" TextWrapping="Wrap" ToolTip="{Binding ModulePath}"/>
-                                    </DataTemplate>
-                                </GridViewColumn.CellTemplate>
-                            </GridViewColumn>
-                        </GridView>
-                    </ListView.View>
-                </ListView>
-            </Grid>
+            </Border>
+            
+            <!-- Toolbar Section -->
+            <Border Grid.Row="1" Background="#FF252526" Margin="10,5,10,5" CornerRadius="5" BorderBrush="#FF3E3E40" BorderThickness="1">
+                <Grid Margin="10">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    
+                    <TextBlock Grid.Column="0" Text="🔍" FontSize="14" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                    <TextBox x:Name="SearchBox" Grid.Column="1" Background="#FF1E1E1E" Foreground="#FFFFFFFF" 
+                            BorderBrush="#FF555555" BorderThickness="1" FontSize="12" Padding="8,6"
+                            VerticalContentAlignment="Center" Style="{StaticResource RoundedTextBoxStyle}"
+                            ToolTip="Search through events..."/>
+                    
+                    <Button x:Name="RefreshButton" Grid.Column="2" Content="🔄 Refresh" 
+                            Background="#FF0E639C" Foreground="White" BorderThickness="0" 
+                            FontSize="12" FontWeight="SemiBold" Padding="15,6" Margin="10,0,0,0"
+                            Style="{StaticResource RoundedButtonStyle}" Height="30"
+                            ToolTip="Refresh events (Ctrl+R)"/>
+                    
+                    <Button x:Name="ExportButton" Grid.Column="3" Content="📊 Export" 
+                            Background="#FF388A34" Foreground="White" BorderThickness="0" 
+                            FontSize="12" FontWeight="SemiBold" Padding="15,6" Margin="10,0,0,0"
+                            Style="{StaticResource RoundedButtonStyle}" Height="30"
+                            ToolTip="Export results to CSV"/>
+                </Grid>
+            </Border>
+            
+            <!-- Main Content Area -->
+            <Border Grid.Row="2" Background="#FF1E1E1E" Margin="10,0,10,10" CornerRadius="0,0,5,5" BorderBrush="#FF3E3E40" BorderThickness="1">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    
+                    <!-- Summary Stats -->
+                    <Border Grid.Row="0" Background="#FF2A2A2C" Margin="10,10,10,5" CornerRadius="3" BorderBrush="#FF404040" BorderThickness="1">
+                        <StackPanel Orientation="Horizontal" Margin="10,5">
+                            <StackPanel Orientation="Horizontal" Margin="0,0,20,0">
+                                <TextBlock Text="📊" FontSize="12" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                <TextBlock x:Name="TotalEventsText" Text="Total: 0" Foreground="#FFCCCCCC" FontSize="11" VerticalAlignment="Center"/>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,20,0">
+                                <TextBlock Text="⚠️" FontSize="12" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                <TextBlock x:Name="SuspiciousEventsText" Text="Medium+ Risk: 0" Foreground="#FFFF6B6B" FontSize="11" VerticalAlignment="Center"/>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,20,0">
+                                <TextBlock Text="🔍" FontSize="12" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                <TextBlock x:Name="FilteredEventsText" Text="Showing: 0" Foreground="#FF4EC1B4" FontSize="11" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+                    
+                    <!-- Events ListView -->
+                    <ListView x:Name="EventsListView" Grid.Row="1" Background="Transparent" Foreground="#FFCCCCCC" 
+                             BorderThickness="0" ScrollViewer.HorizontalScrollBarVisibility="Auto" 
+                             ScrollViewer.VerticalScrollBarVisibility="Auto" Margin="10,0,10,10">
+                        <ListView.Resources>
+                            <Style TargetType="ListViewItem">
+                                <Setter Property="Background" Value="Transparent"/>
+                                <Setter Property="BorderThickness" Value="0"/>
+                                <Setter Property="Padding" Value="8,6"/>
+                                <Setter Property="Margin" Value="0,1"/>
+                                <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+                                <Setter Property="ContextMenu">
+                                    <Setter.Value>
+                                        <ContextMenu>
+                                            <MenuItem Header="Copy App Name"/>
+                                            <MenuItem Header="Copy App Path"/>
+                                            <MenuItem Header="Copy Module Name"/>
+                                            <MenuItem Header="Copy Module Path"/>
+                                            <MenuItem Header="Copy Full Message"/>
+                                        </ContextMenu>
+                                    </Setter.Value>
+                                </Setter>
+                                <Style.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter Property="Background" Value="#FF2A2A2C"/>
+                                    </Trigger>
+                                    <Trigger Property="IsSelected" Value="True">
+                                        <Setter Property="Background" Value="#FF0E639C"/>
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </ListView.Resources>
+                        
+                        <ListView.View>
+                            <GridView>
+                                <GridViewColumn Header="Time" Width="140">
+                                    <GridViewColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding TimeCreated}" Foreground="#FFCCCCCC" FontSize="11" ToolTip="{Binding TimeCreated}"/>
+                                        </DataTemplate>
+                                    </GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="Event ID" Width="80">
+                                    <GridViewColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Border Background="{Binding SeverityColor}" CornerRadius="3" Padding="4,2" HorizontalAlignment="Left">
+                                                <TextBlock Text="{Binding Id}" Foreground="White" FontSize="10" FontWeight="SemiBold" HorizontalAlignment="Center"/>
+                                            </Border>
+                                        </DataTemplate>
+                                    </GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="Application" Width="200">
+                                    <GridViewColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock Text="{Binding AppIcon}" FontSize="12" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                                <TextBlock Text="{Binding AppName}" Foreground="#FFCCCCCC" FontSize="11" TextWrapping="Wrap" 
+                                                          ToolTip="{Binding AppName}" VerticalAlignment="Center"/>
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="Path" Width="250">
+                                    <GridViewColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding AppPath}" Foreground="#FF999999" FontSize="10" TextWrapping="Wrap" 
+                                                      ToolTip="{Binding AppPath}" FontFamily="Consolas"/>
+                                        </DataTemplate>
+                                    </GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="Module" Width="180">
+                                    <GridViewColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding ModuleName}" Foreground="#FFCCCCCC" FontSize="11" TextWrapping="Wrap" 
+                                                      ToolTip="{Binding ModuleName}"/>
+                                        </DataTemplate>
+                                    </GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="Module Path" Width="250">
+                                    <GridViewColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding ModulePath}" Foreground="#FF999999" FontSize="10" TextWrapping="Wrap" 
+                                                      ToolTip="{Binding ModulePath}" FontFamily="Consolas"/>
+                                        </DataTemplate>
+                                    </GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="Risk" Width="80">
+                                    <GridViewColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Border Background="{Binding RiskColor}" CornerRadius="3" Padding="6,2" HorizontalAlignment="Left">
+                                                <TextBlock Text="{Binding RiskLevel}" Foreground="White" FontSize="10" FontWeight="SemiBold" 
+                                                          HorizontalAlignment="Center"/>
+                                            </Border>
+                                        </DataTemplate>
+                                    </GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="Count" Width="80">
+                                    <GridViewColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding EventCount}" Foreground="#FFFFA07A" FontSize="11" HorizontalAlignment="Center"/>
+                                        </DataTemplate>
+                                    </GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                            </GridView>
+                        </ListView.View>
+                    </ListView>
+                </Grid>
+            </Border>
             
             <!-- Status Bar -->
-            <Grid Grid.Row="2" Background="#FF1B1B1C">
-                <TextBlock x:Name="StatusText" Foreground="#FFE4E4E4" FontSize="12" VerticalAlignment="Center" Margin="15,0,0,0" Text="Ready"/>
-            </Grid>
+            <Border Grid.Row="3" Background="#FF2D2D30" CornerRadius="0,0,10,10">
+                <Grid>
+                    <TextBlock x:Name="StatusText" Foreground="#FFCCCCCC" FontSize="11" VerticalAlignment="Center" 
+                              Margin="15,0,0,0" Text="Ready - Loaded 0 events"/>
+                    <TextBlock x:Name="VersionText" Foreground="#FF666666" FontSize="10" VerticalAlignment="Center" 
+                              HorizontalAlignment="Right" Margin="0,0,15,0" Text="v2.1 • Suspicious Event Parser"/>
+                </Grid>
+            </Border>
         </Grid>
     </Border>
 </Window>
 '@
 
 # Parse XAML
-$reader = New-Object System.Xml.XmlNodeReader ([xml]$xaml)
-$window = [Windows.Markup.XamlReader]::Load($reader)
+try {
+    $reader = New-Object System.Xml.XmlNodeReader ([xml]$xaml)
+    $window = [Windows.Markup.XamlReader]::Load($reader)
+} catch {
+    Write-Host "Error loading XAML: $($_.Exception.Message)" -ForegroundColor Red
+    return
+}
+
+# Window Controls
+$minimizeButton = $window.FindName("MinimizeButton")
+$maximizeButton = $window.FindName("MaximizeButton")
+$closeButton = $window.FindName("CloseButton")
+$refreshButton = $window.FindName("RefreshButton")
+$exportButton = $window.FindName("ExportButton")
+
+# Other controls
+$eventsListView = $window.FindName("EventsListView")
+$searchBox = $window.FindName("SearchBox")
+$statusText = $window.FindName("StatusText")
+$totalEventsText = $window.FindName("TotalEventsText")
+$suspiciousEventsText = $window.FindName("SuspiciousEventsText")
+$filteredEventsText = $window.FindName("FilteredEventsText")
 
 # Enable dragging the window
 $window.Add_MouseLeftButtonDown({
@@ -149,13 +293,8 @@ $window.Add_MouseLeftButtonDown({
     }
 })
 
-# Button event handlers
-$minimizeButton = $window.FindName("MinimizeButton")
-$minimizeButton.Add_Click({
-    $window.WindowState = [System.Windows.WindowState]::Minimized
-})
-
-$maximizeButton = $window.FindName("MaximizeButton")
+# Window button events
+$minimizeButton.Add_Click({ $window.WindowState = [System.Windows.WindowState]::Minimized })
 $maximizeButton.Add_Click({
     if ($window.WindowState -eq [System.Windows.WindowState]::Normal) {
         $window.WindowState = [System.Windows.WindowState]::Maximized
@@ -165,28 +304,27 @@ $maximizeButton.Add_Click({
         $maximizeButton.Content = "□"
     }
 })
+$closeButton.Add_Click({ $window.Close() })
 
-$closeButton = $window.FindName("CloseButton")
-$closeButton.Add_Click({
-    $window.Close()
+# Keyboard shortcuts
+$window.Add_KeyDown({
+    if ($_.Key -eq 'F5') {
+        Load-Events
+    }
+    if ($_.Key -eq 'E' -and ([System.Windows.Input.Keyboard]::IsKeyDown('LeftCtrl') -or [System.Windows.Input.Keyboard]::IsKeyDown('RightCtrl'))) {
+        Export-Results
+    }
 })
 
-$refreshButton = $window.FindName("RefreshButton")
-$refreshButton.Add_Click({
-    Load-Events
-})
-
-$eventsListView = $window.FindName("EventsListView")
-$eventsListView.AlternationCount = 2
-
-$searchBox = $window.FindName("SearchBox")
-
-$statusText = $window.FindName("StatusText")
-
-# Script-level variable for base events
+# Script-level variables
 $script:baseEvents = @()
+$script:currentFilteredEvents = @()
 
-# Function to parse event message into detailed object
+# Suspicious keywords
+$keywords = @('launcher', 'settings.cock', 'external', 'cheat', 'mod', 'menu', 'loader', 'fivem', 'citizenfx', 'redengine', 'eulen', 'luna', 'hx', '9z', 'tz', 'crown', 'skript', 'nexus', 'phaze', 'inject', 'executor', 'aimbot', 'esp', 'godmode', 'teleport', 'dll')
+$randomRegex = '[a-zA-Z0-9]{8,}(\.exe|\.dll)?'
+
+# Function to parse event message and assess risk
 function Parse-EventMessage {
     param ($message, $event)
 
@@ -251,35 +389,94 @@ function Parse-EventMessage {
         }
     }
 
-    $details['TimeCreated'] = $event.TimeCreated
+    # Set defaults for missing values
+    if (-not $details['AppName']) { $details['AppName'] = 'Unknown' }
+    if (-not $details['AppPath']) { $details['AppPath'] = 'Unknown' }
+    if (-not $details['ModuleName']) { $details['ModuleName'] = 'Unknown' }
+    if (-not $details['ModulePath']) { $details['ModulePath'] = 'Unknown' }
+    if (-not $details['ExceptionCode']) { $details['ExceptionCode'] = 'Unknown' }
+
+    $details['TimeCreated'] = $event.TimeCreated.ToString("yyyy-MM-dd HH:mm:ss")
     $details['Id'] = $event.Id
     $details['FullMessage'] = $message
+    $details['SeverityColor'] = if ($event.Id -eq 1002) { "#FFF39C12" } else { "#FFE74C3C" }
+    $details['AppIcon'] = Get-AppIcon -appName $details['AppName']
 
-    # Add more cheat indicators
-    $details['CheatIndicators'] = @()
-    if ($details['ExceptionCode'] -eq '0xc0000005') {
-        $details['CheatIndicators'] += "Access Violation (0xc0000005) - Often caused by cheat injections, memory manipulation, or DLL hooks in games."
+    # Check for keywords or random app name
+    $appNameLower = $details['AppName'].ToLower()
+    $isDanger = $false
+    foreach ($keyword in $keywords) {
+        if ($appNameLower -like "*$keyword*") {
+            $isDanger = $true
+            break
+        }
     }
-    if ($details['ModulePath'] -and ($details['ModulePath'].ToLower() -match '\\temp\\' -or $details['ModulePath'].ToLower() -match '\\appdata\\' -or $details['ModulePath'].ToLower() -match '\\downloads\\')) {
-        $details['CheatIndicators'] += "Suspicious module location (Temp, AppData, or Downloads) - Cheats frequently use these folders to evade detection."
+    if ($appNameLower -match $randomRegex) {
+        $isDanger = $true
     }
-    if ($details['ModuleName'] -and $details['ModuleName'] -match '[a-zA-Z0-9]{8,}\.dll') {
-        $details['CheatIndicators'] += "Random alphanumeric DLL name - Common obfuscation technique for cheat loaders and injectors."
-    }
-    if ($details['AppName'] -match 'FiveM' -or $details['AppPath'] -match 'FiveM' -or $details['ModuleName'] -match 'FiveM' -or $details['ModulePath'] -match 'FiveM') {
-        $details['CheatIndicators'] += "Directly related to FiveM process - Likely a crash caused by incompatible or malicious mods/cheats."
-    }
-    if ($details['ExceptionCode'] -eq '0xc0000409') {
-        $details['CheatIndicators'] += "Security Check Failure (0xc0000409) - Could indicate anti-cheat detection or stack buffer overrun from exploits."
-    }
-    if ($details['FaultOffset'] -and [Convert]::ToInt64($details['FaultOffset'], 16) -gt 0) {
-        $details['CheatIndicators'] += "Non-zero fault offset - May point to specific code in the module where the cheat interfered."
-    }
-    if (-not $details['ModulePath']) {
-        $details['CheatIndicators'] += "Unknown module path - Some advanced cheats unload modules to hide their presence."
+
+    if ($isDanger) {
+        $details['RiskLevel'] = "Danger"
+        $details['RiskColor'] = "#FFE74C3C"  # Red
+    } else {
+        # Assess risk based on other criteria
+        $riskScore = 0
+        if ($details['ExceptionCode'] -eq '0xc0000005') { $riskScore += 1 }  # Access Violation
+        if ($details['ModulePath'] -and ($details['ModulePath'].ToLower() -match '\\temp\\' -or $details['ModulePath'].ToLower() -match '\\appdata\\' -or $details['ModulePath'].ToLower() -match '\\downloads\\')) {
+            $riskScore += 1
+        }
+        if ($details['ModuleName'] -and $details['ModuleName'] -match '[a-zA-Z0-9]{8,}\.dll') { $riskScore += 1 }  # Random DLL
+        if ($details['AppName'] -match 'FiveM' -or $details['AppPath'] -match 'FiveM' -or $details['ModuleName'] -match 'FiveM' -or $details['ModulePath'] -match 'FiveM') {
+            $riskScore += 2
+        }
+        if ($details['ExceptionCode'] -eq '0xc0000409') { $riskScore += 1 }  # Security Check Failure
+        if ($details['FaultOffset'] -and [Convert]::ToInt64($details['FaultOffset'], 16) -gt 0) { $riskScore += 1 }
+        if (-not $details['ModulePath']) { $riskScore += 1 }  # Missing module path
+
+        # Assign risk level and color
+        if ($riskScore -ge 5) {
+            $details['RiskLevel'] = "Danger"
+            $details['RiskColor'] = "#FFE74C3C"  # Red
+        } elseif ($riskScore -ge 3) {
+            $details['RiskLevel'] = "High"
+            $details['RiskColor'] = "#FFFFA07A"  # Orange
+        } elseif ($riskScore -ge 2) {
+            $details['RiskLevel'] = "Medium"
+            $details['RiskColor'] = "#FFF39C12"  # Yellow
+        } elseif ($riskScore -ge 1) {
+            $details['RiskLevel'] = "Low"
+            $details['RiskColor'] = "#FF2ECC71"  # Green
+        } else {
+            $details['RiskLevel'] = "Info"
+            $details['RiskColor'] = "#FF3498DB"  # Blue
+        }
     }
 
     return $details
+}
+
+# Function to get application icon
+function Get-AppIcon {
+    param($appName)
+    
+    $icons = @{
+        'svchost' = '🖥️'; 'explorer' = '📁'; 'cmd' = '⌨️'; 'powershell' = '⌨️';
+        'chrome' = '🌐'; 'firefox' = '🌐'; 'edge' = '🌐';
+        'notepad' = '📄'; 'calculator' = '🔢';
+        'steam' = '🎮'; 'epic' = '🎮'; 'fivem' = '🎮';
+        'citizenfx' = '🎮'; 'redengine' = '⚠️'; 'eulen' = '⚠️'; 'luna' = '⚠️';
+        'hx' = '⚠️'; '9z' = '⚠️'; 'tz' = '⚠️'; 'crown' = '⚠️';
+        'skript' = '⚠️'; 'nexus' = '⚠️'; 'phaze' = '⚠️'
+    }
+    
+    $appLower = $appName.ToLower()
+    foreach ($key in $icons.Keys) {
+        if ($appLower -like "*$key*") {
+            return $icons[$key]
+        }
+    }
+    
+    return '⚙️'
 }
 
 # Function to show detailed window
@@ -289,165 +486,220 @@ function Show-DetailWindow {
     $detailXaml = @'
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Event Details" Width="700" Height="600"
-        Background="#FF252526" Foreground="#FFE4E4E4">
-    <ScrollViewer>
-        <StackPanel Margin="15">
-            <TextBlock Text="Time Created:" FontWeight="Bold" FontSize="14"/>
-            <TextBlock Text="{Binding TimeCreated}" Margin="0,0,0,15" FontSize="12"/>
-            
-            <TextBlock Text="Event ID:" FontWeight="Bold" FontSize="14"/>
-            <TextBlock Text="{Binding Id}" Margin="0,0,0,15" FontSize="12"/>
-            
-            <TextBlock Text="Application Name:" FontWeight="Bold" FontSize="14"/>
-            <TextBlock Text="{Binding AppName}" TextWrapping="Wrap" Margin="0,0,0,15" FontSize="12"/>
-            
-            <TextBlock Text="Application Path:" FontWeight="Bold" FontSize="14"/>
-            <TextBlock Text="{Binding AppPath}" TextWrapping="Wrap" Margin="0,0,0,15" FontSize="12"/>
-            
-            <TextBlock Text="Application Version:" FontWeight="Bold" FontSize="14"/>
-            <TextBlock Text="{Binding AppVersion}" Margin="0,0,0,15" FontSize="12"/>
-            
-            <TextBlock Text="Application Timestamp (Build Time):" FontWeight="Bold" FontSize="14"/>
-            <TextBlock Text="{Binding AppTimestamp}" Margin="0,0,0,15" FontSize="12"/>
-            
-            <TextBlock Text="Application Start Time:" FontWeight="Bold" FontSize="14"/>
-            <TextBlock Text="{Binding AppStartTime}" Margin="0,0,0,15" FontSize="12"/>
-            
-            <TextBlock Text="Module Name:" FontWeight="Bold" FontSize="14"/>
-            <TextBlock Text="{Binding ModuleName}" TextWrapping="Wrap" Margin="0,0,0,15" FontSize="12"/>
-            
-            <TextBlock Text="Module Path:" FontWeight="Bold" FontSize="14"/>
-            <TextBlock Text="{Binding ModulePath}" TextWrapping="Wrap" Margin="0,0,0,15" FontSize="12"/>
-            
-            <TextBlock Text="Module Version:" FontWeight="Bold" FontSize="14"/>
-            <TextBlock Text="{Binding ModuleVersion}" Margin="0,0,0,15" FontSize="12"/>
-            
-            <TextBlock Text="Module Timestamp (Build Time):" FontWeight="Bold" FontSize="14"/>
-            <TextBlock Text="{Binding ModuleTimestamp}" Margin="0,0,0,15" FontSize="12"/>
-            
-            <TextBlock Text="Exception Code:" FontWeight="Bold" FontSize="14"/>
-            <TextBlock Text="{Binding ExceptionCode}" Margin="0,0,0,15" FontSize="12"/>
-            
-            <TextBlock Text="Fault Offset:" FontWeight="Bold" FontSize="14"/>
-            <TextBlock Text="{Binding FaultOffset}" Margin="0,0,0,15" FontSize="12"/>
-            
-            <TextBlock Text="Process ID:" FontWeight="Bold" FontSize="14"/>
-            <TextBlock Text="{Binding ProcessId}" Margin="0,0,0,15" FontSize="12"/>
-            
-            <TextBlock Text="Report ID:" FontWeight="Bold" FontSize="14"/>
-            <TextBlock Text="{Binding ReportId}" Margin="0,0,0,15" FontSize="12"/>
-            
-            <TextBlock Text="Window Title (for Hangs):" FontWeight="Bold" FontSize="14"/>
-            <TextBlock Text="{Binding WindowTitle}" Margin="0,0,0,15" FontSize="12"/>
-            
-            <TextBlock Text="Package Full Name:" FontWeight="Bold" FontSize="14"/>
-            <TextBlock Text="{Binding PackageFullName}" Margin="0,0,0,15" FontSize="12"/>
-            
-            <TextBlock Text="Package App ID:" FontWeight="Bold" FontSize="14"/>
-            <TextBlock Text="{Binding PackageAppId}" Margin="0,0,0,15" FontSize="12"/>
-            
-            <TextBlock Text="Potential Cheat Indicators:" FontWeight="Bold" FontSize="14" Margin="0,10,0,0"/>
-            <ItemsControl ItemsSource="{Binding CheatIndicators}">
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate>
-                        <TextBlock Text="{Binding}" Margin="0,0,0,5" Foreground="#FFFFA07A" TextWrapping="Wrap" FontSize="12"/>
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
-            
-            <TextBlock Text="Full Event Message:" FontWeight="Bold" FontSize="14" Margin="0,15,0,0"/>
-            <TextBox Text="{Binding FullMessage}" IsReadOnly="True" TextWrapping="Wrap" Height="250" Background="#FF1E1E1E" Foreground="#FFE4E4E4" BorderThickness="1" BorderBrush="#FF3F3F41" FontSize="12" Padding="5"/>
-        </StackPanel>
-    </ScrollViewer>
+        Title="Event Details" Width="800" Height="600"
+        WindowStartupLocation="CenterOwner" Background="#FF252526">
+    <Border Margin="15" BorderBrush="#FF3F3F41" BorderThickness="1" CornerRadius="5">
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+            <StackPanel Margin="15">
+                <TextBlock Text="📋 Event Information" FontWeight="Bold" FontSize="14" Foreground="#FFE4E4E4" Margin="0,0,0,10"/>
+                <Border Background="#FF2D2D30" CornerRadius="5" Padding="10" Margin="0,0,0,15">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="150"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        
+                        <TextBlock Grid.Row="0" Grid.Column="0" Text="🕒 Time:" FontWeight="SemiBold" FontSize="11" Foreground="#FFCCCCCC" Margin="0,0,10,5"/>
+                        <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding TimeCreated}" FontSize="11" Foreground="#FFE4E4E4" TextWrapping="Wrap" Margin="0,0,0,5"/>
+                        
+                        <TextBlock Grid.Row="1" Grid.Column="0" Text="🔢 Event ID:" FontWeight="SemiBold" FontSize="11" Foreground="#FFCCCCCC" Margin="0,0,10,5"/>
+                        <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding Id}" FontSize="11" Foreground="#FFE4E4E4" Margin="0,0,0,5"/>
+                        
+                        <TextBlock Grid.Row="2" Grid.Column="0" Text="📱 Application:" FontWeight="SemiBold" FontSize="11" Foreground="#FFCCCCCC" Margin="0,0,10,5"/>
+                        <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding AppName}" FontSize="11" Foreground="#FFE4E4E4" TextWrapping="Wrap" Margin="0,0,0,5"/>
+                        
+                        <TextBlock Grid.Row="3" Grid.Column="0" Text="📁 Application Path:" FontWeight="SemiBold" FontSize="11" Foreground="#FFCCCCCC" Margin="0,0,10,5"/>
+                        <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding AppPath}" FontSize="11" Foreground="#FFE4E4E4" TextWrapping="Wrap" Margin="0,0,0,5"/>
+                        
+                        <TextBlock Grid.Row="4" Grid.Column="0" Text="🔧 Module:" FontWeight="SemiBold" FontSize="11" Foreground="#FFCCCCCC" Margin="0,0,10,5"/>
+                        <TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding ModuleName}" FontSize="11" Foreground="#FFE4E4E4" TextWrapping="Wrap" Margin="0,0,0,5"/>
+                        
+                        <TextBlock Grid.Row="5" Grid.Column="0" Text="📂 Module Path:" FontWeight="SemiBold" FontSize="11" Foreground="#FFCCCCCC" Margin="0,0,10,5"/>
+                        <TextBlock Grid.Row="5" Grid.Column="1" Text="{Binding ModulePath}" FontSize="11" Foreground="#FFE4E4E4" TextWrapping="Wrap" Margin="0,0,0,5"/>
+                        
+                        <TextBlock Grid.Row="6" Grid.Column="0" Text="⚙️ Exception Code:" FontWeight="SemiBold" FontSize="11" Foreground="#FFCCCCCC" Margin="0,0,10,5"/>
+                        <TextBlock Grid.Row="6" Grid.Column="1" Text="{Binding ExceptionCode}" FontSize="11" Foreground="#FFE4E4E4" Margin="0,0,0,5"/>
+                        
+                        <TextBlock Grid.Row="7" Grid.Column="0" Text="📍 Fault Offset:" FontWeight="SemiBold" FontSize="11" Foreground="#FFCCCCCC" Margin="0,0,10,5"/>
+                        <TextBlock Grid.Row="7" Grid.Column="1" Text="{Binding FaultOffset}" FontSize="11" Foreground="#FFE4E4E4" Margin="0,0,0,5"/>
+                        
+                        <TextBlock Grid.Row="8" Grid.Column="0" Text="🔢 Process ID:" FontWeight="SemiBold" FontSize="11" Foreground="#FFCCCCCC" Margin="0,0,10,5"/>
+                        <TextBlock Grid.Row="8" Grid.Column="1" Text="{Binding ProcessId}" FontSize="11" Foreground="#FFE4E4E4" Margin="0,0,0,5"/>
+                        
+                        <TextBlock Grid.Row="9" Grid.Column="0" Text="📜 Report ID:" FontWeight="SemiBold" FontSize="11" Foreground="#FFCCCCCC" Margin="0,0,10,5"/>
+                        <TextBlock Grid.Row="9" Grid.Column="1" Text="{Binding ReportId}" FontSize="11" Foreground="#FFE4E4E4" Margin="0,0,0,5"/>
+                        
+                        <TextBlock Grid.Row="10" Grid.Column="0" Text="🖼️ Window Title:" FontWeight="SemiBold" FontSize="11" Foreground="#FFCCCCCC" Margin="0,0,10,5"/>
+                        <TextBlock Grid.Row="10" Grid.Column="1" Text="{Binding WindowTitle}" FontSize="11" Foreground="#FFE4E4E4" Margin="0,0,0,5"/>
+                        
+                        <TextBlock Grid.Row="11" Grid.Column="0" Text="⚠️ Risk Level:" FontWeight="SemiBold" FontSize="11" Foreground="#FFCCCCCC" Margin="0,0,10,5"/>
+                        <Border Grid.Row="11" Grid.Column="1" Background="{Binding RiskColor}" CornerRadius="3" Padding="6,2" HorizontalAlignment="Left">
+                            <TextBlock Text="{Binding RiskLevel}" Foreground="White" FontSize="10" FontWeight="SemiBold"/>
+                        </Border>
+                    </Grid>
+                </Border>
+                
+                <TextBlock Text="📜 Full Event Message" FontWeight="Bold" FontSize="14" Foreground="#FFE4E4E4" Margin="0,15,0,10"/>
+                <TextBox Text="{Binding FullMessage}" IsReadOnly="True" TextWrapping="Wrap" Height="150" 
+                         Background="#FF1E1E1E" Foreground="#FFE4E4E4" BorderThickness="1" 
+                         BorderBrush="#FF3F3F41" FontSize="10" Padding="8" FontFamily="Consolas" 
+                         VerticalScrollBarVisibility="Auto"/>
+            </StackPanel>
+        </ScrollViewer>
+    </Border>
 </Window>
 '@
 
-    $detailReader = New-Object System.Xml.XmlNodeReader ([xml]$detailXaml)
-    $detailWindow = [Windows.Markup.XamlReader]::Load($detailReader)
-    $detailWindow.DataContext = New-Object -TypeName PSObject -Property $details
-    $detailWindow.ShowDialog() | Out-Null
+    try {
+        $detailReader = New-Object System.Xml.XmlNodeReader ([xml]$detailXaml)
+        $detailWindow = [Windows.Markup.XamlReader]::Load($detailReader)
+        $detailWindow.WindowStartupLocation = [System.Windows.WindowStartupLocation]::CenterOwner
+        $detailWindow.Owner = $window
+        $detailWindow.DataContext = New-Object -TypeName PSObject -Property $details
+        $detailWindow.ShowDialog() | Out-Null
+    } catch {
+        Write-Host "Error loading detail window: $($_.Exception.Message)" -ForegroundColor Red
+    }
 }
 
-# Function to load and filter events
+# Enhanced event loading
 function Load-Events {
-    $statusText.Text = "Loading events..."
-    $eventsListView.ItemsSource = $null
-    $tempEvents = @()
-
-    # Expanded keywords for cheats
-    $keywords = @('launcher', 'settings.cock', 'external', 'cheat', 'mod', 'menu', 'loader', 'fivem', 'citizenfx', 'redengine', 'eulen', 'luna', 'hx', '9z', 'tz', 'crown', 'skript', 'nexus', 'phaze', 'inject', 'executor', 'aimbot', 'esp', 'godmode', 'teleport', 'dll')
-    # Regex for random alphanumeric file names
-    $randomRegex = '[a-zA-Z0-9]{8,}(\.exe|\.dll)?'
-
-    # Get events
-    $events = Get-WinEvent -FilterHashtable @{LogName='Application'; ID=1000,1002} -MaxEvents 50000 -ErrorAction SilentlyContinue
-
-    foreach ($event in $events) {
-        $message = $event.Message
-
-        # Parse details
-        $details = Parse-EventMessage -message $message -event $event
-
-        # Check only Application Name and Application Path for filtering
-        $fields = @($details['AppName'], $details['AppPath']) | Where-Object { $_ }
-        $matches = $false
-
-        foreach ($field in $fields) {
-            $fieldLower = $field.ToLower()
-            foreach ($kw in $keywords) {
-                if ($fieldLower -like "*$kw*") {
-                    $matches = $true
-                    break
-                }
-            }
-            if ($matches) { break }
-            if ($fieldLower -match $randomRegex) {
-                $matches = $true
-                break
-            }
-        }
-
-        if ($matches) {
+    $statusText.Text = "🔄 Loading events..."
+    $window.Cursor = [System.Windows.Input.Cursors]::Wait
+    
+    try {
+        $events = Get-WinEvent -FilterHashtable @{LogName='Application'; ID=1000,1002} -MaxEvents 50000 -ErrorAction SilentlyContinue
+        $filteredEvents = @()
+        $riskyCount = 0
+        
+        foreach ($event in $events) {
+            $details = Parse-EventMessage -message $event.Message -event $event
+            
             $item = [PSCustomObject]@{
-                TimeCreated = $details['TimeCreated']
-                Id = $details['Id']
-                AppName = $details['AppName']
-                AppPath = $details['AppPath']
-                ModuleName = $details['ModuleName']
-                ModulePath = $details['ModulePath']
+                TimeCreated = $details.TimeCreated
+                Id = $details.Id
+                AppName = $details.AppName
+                AppPath = $details.AppPath
+                ModuleName = $details.ModuleName
+                ModulePath = $details.ModulePath
+                RiskLevel = $details.RiskLevel
+                RiskColor = $details.RiskColor
+                SeverityColor = $details.SeverityColor
+                AppIcon = $details.AppIcon
+                EventCount = 1
                 Details = $details
             }
-            $tempEvents += $item
+            
+            $filteredEvents += $item
+            if ($details.RiskLevel -in @("Medium", "High", "Danger")) {
+                $riskyCount++
+            }
         }
+        
+        # Remove duplicates and count occurrences
+        $groupedEvents = $filteredEvents | Group-Object -Property AppName, AppPath, ModuleName, ModulePath
+        $script:baseEvents = $groupedEvents | ForEach-Object {
+            $firstEvent = $_.Group | Sort-Object TimeCreated -Descending | Select-Object -First 1
+            [PSCustomObject]@{
+                TimeCreated = $firstEvent.TimeCreated
+                Id = $firstEvent.Id
+                AppName = $firstEvent.AppName
+                AppPath = $firstEvent.AppPath
+                ModuleName = $firstEvent.ModuleName
+                ModulePath = $firstEvent.ModulePath
+                RiskLevel = $firstEvent.RiskLevel
+                RiskColor = $firstEvent.RiskColor
+                SeverityColor = $firstEvent.SeverityColor
+                AppIcon = $firstEvent.AppIcon
+                EventCount = $_.Count
+                Details = $firstEvent.Details
+            }
+        }
+        
+        $script:baseEvents = $script:baseEvents | Sort-Object TimeCreated -Descending
+        $script:currentFilteredEvents = $script:baseEvents
+        
+        $eventsListView.ItemsSource = $script:currentFilteredEvents
+        
+        $totalEventsText.Text = "Total: $($events.Count)"
+        $suspiciousEventsText.Text = "Medium+ Risk: $riskyCount"
+        $filteredEventsText.Text = "Showing: $($script:currentFilteredEvents.Count)"
+        $statusText.Text = "✅ Loaded $($events.Count) total events ($riskyCount medium+ risk)"
     }
-
-    # Remove duplicates based on identical AppName, AppPath, ModuleName, ModulePath
-    $script:baseEvents = $tempEvents | Group-Object -Property AppName, AppPath, ModuleName, ModulePath | ForEach-Object { $_.Group | Select-Object -First 1 }
-
-    # Bind to ListView
-    $eventsListView.ItemsSource = $script:baseEvents
-    $statusText.Text = "Loaded $($script:baseEvents.Count) unique filtered events."
+    catch {
+        $statusText.Text = "❌ Error loading events: $($_.Exception.Message)"
+    }
+    finally {
+        $window.Cursor = [System.Windows.Input.Cursors]::Arrow
+    }
 }
 
-# Search functionality (live as you type)
+# Export function
+function Export-Results {
+    if ($script:currentFilteredEvents.Count -eq 0) {
+        $statusText.Text = "⚠️ No events to export"
+        return
+    }
+    
+    $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
+    $filename = "SuspiciousEvents_$timestamp.csv"
+    
+    $exportData = $script:currentFilteredEvents | ForEach-Object {
+        [PSCustomObject]@{
+            TimeCreated = $_.TimeCreated
+            EventID = $_.Id
+            Application = $_.AppName
+            Path = $_.AppPath
+            Module = $_.ModuleName
+            ModulePath = $_.ModulePath
+            RiskLevel = $_.RiskLevel
+            EventCount = $_.EventCount
+            FullMessage = $_.Details.FullMessage
+        }
+    }
+    
+    $exportData | Export-Csv -Path $filename -NoTypeInformation
+    $statusText.Text = "📁 Exported $($exportData.Count) events to $filename"
+}
+
+# Search functionality
 $searchBox.Add_TextChanged({
     $searchText = $searchBox.Text.ToLower()
     if ([string]::IsNullOrEmpty($searchText)) {
-        $eventsListView.ItemsSource = $script:baseEvents
+        $script:currentFilteredEvents = $script:baseEvents
     } else {
-        $filtered = $script:baseEvents | Where-Object {
-            ($_.AppName -and $_.AppName.ToLower() -like "*$searchText*") -or
-            ($_.AppPath -and $_.AppPath.ToLower() -like "*$searchText*") -or
-            ($_.ModuleName -and $_.ModuleName.ToLower() -like "*$searchText*") -or
-            ($_.ModulePath -and $_.ModulePath.ToLower() -like "*$searchText*") -or
-            ($_.Details.FullMessage.ToLower() -like "*$searchText*")
+        $script:currentFilteredEvents = $script:baseEvents | Where-Object {
+            ($_.AppName -and $_.AppName.ToLower().Contains($searchText)) -or
+            ($_.AppPath -and $_.AppPath.ToLower().Contains($searchText)) -or
+            ($_.ModuleName -and $_.ModuleName.ToLower().Contains($searchText)) -or
+            ($_.ModulePath -and $_.ModulePath.ToLower().Contains($searchText)) -or
+            ($_.Details.FullMessage.ToLower().Contains($searchText)) -or
+            ($_.RiskLevel.ToLower().Contains($searchText))
         }
-        $eventsListView.ItemsSource = @($filtered)
     }
+    $eventsListView.ItemsSource = $script:currentFilteredEvents
+    $filteredEventsText.Text = "Showing: $($script:currentFilteredEvents.Count)"
 })
 
-# Double-click to view details
+# Button events
+$refreshButton.Add_Click({ Load-Events })
+$exportButton.Add_Click({ Export-Results })
+
+# Double-click for details
 $eventsListView.Add_MouseDoubleClick({
     if ($eventsListView.SelectedItem) {
         $selected = $eventsListView.SelectedItem
@@ -484,3 +736,5 @@ Load-Events
 
 # Show the window
 $window.ShowDialog() | Out-Null
+
+# End of script
