@@ -150,17 +150,7 @@ $xaml = @'
                                 <Setter Property="Padding" Value="8,6"/>
                                 <Setter Property="Margin" Value="0,1"/>
                                 <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
-                                <Setter Property="ContextMenu">
-                                    <Setter.Value>
-                                        <ContextMenu>
-                                            <MenuItem Header="Copy App Name"/>
-                                            <MenuItem Header="Copy App Path"/>
-                                            <MenuItem Header="Copy Module Name"/>
-                                            <MenuItem Header="Copy Module Path"/>
-                                            <MenuItem Header="Copy Full Message"/>
-                                        </ContextMenu>
-                                    </Setter.Value>
-                                </Setter>
+                                
                                 <Style.Triggers>
                                     <Trigger Property="IsMouseOver" Value="True">
                                         <Setter Property="Background" Value="#FF2A2A2C"/>
@@ -707,29 +697,6 @@ $eventsListView.Add_MouseDoubleClick({
     }
 })
 
-# Context menu (right-click)
-$eventsListView.Add_ContextMenuOpening({
-    $item = $eventsListView.SelectedItem
-    if ($item) {
-        $contextMenu = $_.Source.ContextMenu
-        $menuItems = $contextMenu.Items
-        $menuItems[0].Add_Click({
-            if ($item.AppName) { Set-Clipboard -Text $item.AppName }
-        })
-        $menuItems[1].Add_Click({
-            if ($item.AppPath) { Set-Clipboard -Text $item.AppPath }
-        })
-        $menuItems[2].Add_Click({
-            if ($item.ModuleName) { Set-Clipboard -Text $item.ModuleName }
-        })
-        $menuItems[3].Add_Click({
-            if ($item.ModulePath) { Set-Clipboard -Text $item.ModulePath }
-        })
-        $menuItems[4].Add_Click({
-            if ($item.Details.FullMessage) { Set-Clipboard -Text $item.Details.FullMessage }
-        })
-    }
-})
 
 # Initial load
 Load-Events
