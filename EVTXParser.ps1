@@ -601,7 +601,7 @@ function Load-Events {
         }
         
         # Remove duplicates and count occurrences
-        $groupedEvents = $filteredEvents | Group-Object -Property AppName, AppPath, ModuleName, ModulePath
+        $groupedEvents = $filteredEvents | Group-Object -Property AppName, AppPath
         $script:baseEvents = $groupedEvents | ForEach-Object {
             $firstEvent = $_.Group | Sort-Object TimeCreated -Descending | Select-Object -First 1
             [PSCustomObject]@{
