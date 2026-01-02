@@ -5,7 +5,7 @@ Add-Type -AssemblyName PresentationFramework, PresentationCore, WindowsBase, Sys
 $xaml = @'
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Suspicious Event Parser" Width="1200" Height="800"
+        Title="Suspicious Event Parser" Width="1500" Height="800"
         WindowStyle="None" AllowsTransparency="True" Background="Transparent"
         ResizeMode="CanResizeWithGrip" FontFamily="Segoe UI">
         
@@ -244,7 +244,7 @@ $xaml = @'
                     <TextBlock x:Name="StatusText" Foreground="#FFCCCCCC" FontSize="11" VerticalAlignment="Center" 
                               Margin="15,0,0,0" Text="Ready - Loaded 0 events"/>
                     <TextBlock x:Name="VersionText" Foreground="#FF666666" FontSize="10" VerticalAlignment="Center" 
-                              HorizontalAlignment="Right" Margin="0,0,15,0" Text="v2.1 • Suspicious Event Parser"/>
+                              HorizontalAlignment="Right" Margin="0,0,15,0" Text="3.0.5 • Suspicious Event Parser"/>
                 </Grid>
             </Border>
         </Grid>
@@ -313,6 +313,82 @@ $script:currentFilteredEvents = @()
 # Suspicious keywords
 $keywords = @('launcher', 'settings.cock', 'external', 'cheat', 'mod', 'menu', 'loader', 'fivem', 'citizenfx', 'redengine', 'eulen', 'luna', 'hx', '9z', 'tz', 'crown', 'skript', 'nexus', 'phaze', 'inject', 'executor', 'aimbot', 'esp', 'godmode', 'teleport', 'dll')
 $randomRegex = '[a-zA-Z0-9]{8,}(\.exe|\.dll)?'
+
+# Function to parse Windows Defender events
+function Parse-DefenderEvent {
+    param ($message, $event)
+    
+    $details = @{}
+    $lines = $message -split "`r`n"
+    
+    $details['TimeCreated'] = $event.TimeCreated.ToString("yyyy-MM-dd HH:mm:ss")
+    $details['Id'] = $event.Id
+    $details['FullMessage'] = $message
+    $details['SeverityColor'] = "#FF9B59B6"  # Purple for Defender
+    
+    # Default values
+    $details['AppName'] = 'Windows Defender'
+    $details['AppPath'] = 'Unknown'
+    $details['ModuleName'] = 'Antimalware Scan'
+    $details['ModulePath'] = 'Unknown'
+    $details['RiskLevel'] = 'Defender'
+    $details['RiskColor'] = "#FF9B59B6"  # Purple
+    $details['AppIcon'] = '🛡️'  # Shield icon for Defender
+    $details['ThreatName'] = 'Unknown'
+    $details['Action'] = 'Unknown'
+    
+    # Parse Defender event specific fields
+    foreach ($line in $lines) {
+        # For Event ID 1116 - Detection
+        if ($line -match 'Detection ID:\s*(.*)') {
+            $details['DetectionId'] = $matches[1].Trim()
+        }
+        elseif ($line -match 'Detection Time:\s*(.*)') {
+            $details['DetectionTime'] = $matches[1].Trim()
+        }
+        elseif ($line -match 'Threat Name:\s*(.*)') {
+            $details['ThreatName'] = $matches[1].Trim()
+        }
+        elseif ($line -match 'Threat ID:\s*(.*)') {
+            $details['ThreatId'] = $matches[1].Trim()
+        }
+        elseif ($line -match 'Path:\s*(.*)') {
+            $path = $matches[1].Trim()
+            $details['AppPath'] = $path
+            # Extract filename from path
+            if ($path -match '[\\/]([^\\/]+)$') {
+                $details['AppName'] = $matches[1]
+            }
+        }
+        elseif ($line -match 'Origin Name:\s*(.*)') {
+            $details['Origin'] = $matches[1].Trim()
+        }
+        elseif ($line -match 'Process Name:\s*(.*)') {
+            $details['ProcessName'] = $matches[1].Trim()
+        }
+        
+        # For Event ID 1117 - Action Taken
+        elseif ($line -match 'Action:\s*(.*)') {
+            $details['Action'] = $matches[1].Trim()
+        }
+        elseif ($line -match 'Action Status:\s*(.*)') {
+            $details['ActionStatus'] = $matches[1].Trim()
+        }
+        elseif ($line -match 'Error Code:\s*(.*)') {
+            $details['ErrorCode'] = $matches[1].Trim()
+        }
+        elseif ($line -match 'Error Description:\s*(.*)') {
+            $details['ErrorDesc'] = $matches[1].Trim()
+        }
+    }
+    
+    # For Event ID 1117, update AppName to include action
+    if ($event.Id -eq 1117 -and $details['Action']) {
+        $details['AppName'] = "Defender: $($details['Action'])"
+    }
+    
+    return $details
+}
 
 # Function to parse event message and assess risk
 function Parse-EventMessage {
@@ -501,6 +577,11 @@ function Show-DetailWindow {
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="Auto"/>
+                            <!-- Additional rows for Defender events -->
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
                         </Grid.RowDefinitions>
                         
                         <TextBlock Grid.Row="0" Grid.Column="0" Text="🕒 Time:" FontWeight="SemiBold" FontSize="11" Foreground="#FFCCCCCC" Margin="0,0,10,5"/>
@@ -536,8 +617,15 @@ function Show-DetailWindow {
                         <TextBlock Grid.Row="10" Grid.Column="0" Text="🖼️ Window Title:" FontWeight="SemiBold" FontSize="11" Foreground="#FFCCCCCC" Margin="0,0,10,5"/>
                         <TextBlock Grid.Row="10" Grid.Column="1" Text="{Binding WindowTitle}" FontSize="11" Foreground="#FFE4E4E4" Margin="0,0,0,5"/>
                         
-                        <TextBlock Grid.Row="11" Grid.Column="0" Text="⚠️ Risk Level:" FontWeight="SemiBold" FontSize="11" Foreground="#FFCCCCCC" Margin="0,0,10,5"/>
-                        <Border Grid.Row="11" Grid.Column="1" Background="{Binding RiskColor}" CornerRadius="3" Padding="6,2" HorizontalAlignment="Left">
+                        <!-- Defender Specific Fields -->
+                        <TextBlock Grid.Row="11" Grid.Column="0" Text="🛡️ Threat Name:" FontWeight="SemiBold" FontSize="11" Foreground="#FFCCCCCC" Margin="0,0,10,5"/>
+                        <TextBlock Grid.Row="11" Grid.Column="1" Text="{Binding ThreatName}" FontSize="11" Foreground="#FFE4E4E4" Margin="0,0,0,5"/>
+                        
+                        <TextBlock Grid.Row="12" Grid.Column="0" Text="⚡ Action:" FontWeight="SemiBold" FontSize="11" Foreground="#FFCCCCCC" Margin="0,0,10,5"/>
+                        <TextBlock Grid.Row="12" Grid.Column="1" Text="{Binding Action}" FontSize="11" Foreground="#FFE4E4E4" Margin="0,0,0,5"/>
+                        
+                        <TextBlock Grid.Row="13" Grid.Column="0" Text="⚠️ Risk Level:" FontWeight="SemiBold" FontSize="11" Foreground="#FFCCCCCC" Margin="0,0,10,5"/>
+                        <Border Grid.Row="13" Grid.Column="1" Background="{Binding RiskColor}" CornerRadius="3" Padding="6,2" HorizontalAlignment="Left">
                             <TextBlock Text="{Binding RiskLevel}" Foreground="White" FontSize="10" FontWeight="SemiBold"/>
                         </Border>
                     </Grid>
@@ -572,36 +660,56 @@ function Load-Events {
     $window.Cursor = [System.Windows.Input.Cursors]::Wait
     
     try {
-        $events = Get-WinEvent -FilterHashtable @{LogName='Application'; ID=1000,1002} -MaxEvents 50000 -ErrorAction SilentlyContinue
+        # Load Application events (1000, 1002)
+        $appEvents = Get-WinEvent -FilterHashtable @{LogName='Application'; ID=1000,1002} -MaxEvents 50000 -ErrorAction SilentlyContinue
+        
+        # Load Windows Defender events (1116, 1117)
+        $defenderEvents = Get-WinEvent -FilterHashtable @{
+            LogName='Microsoft-Windows-Windows Defender/Operational';
+            ID=1116,1117
+        } -MaxEvents 50000 -ErrorAction SilentlyContinue
+        
+        # Combine all events
+        $events = $appEvents + $defenderEvents
+        
         $filteredEvents = @()
         $riskyCount = 0
+        $defenderCount = 0
         
         foreach ($event in $events) {
-            $details = Parse-EventMessage -message $event.Message -event $event
+            if ($event.Id -in @(1116, 1117)) {
+                # Parse Defender events
+                $details = Parse-DefenderEvent -message $event.Message -event $event
+                $defenderCount++
+            } else {
+                # Parse regular application events
+                $details = Parse-EventMessage -message $event.Message -event $event
+                
+                if ($details.RiskLevel -in @("Medium", "High", "Danger")) {
+                    $riskyCount++
+                }
+            }
             
             $item = [PSCustomObject]@{
                 TimeCreated = $details.TimeCreated
                 Id = $details.Id
-                AppName = $details.AppName
-                AppPath = $details.AppPath
-                ModuleName = $details.ModuleName
-                ModulePath = $details.ModulePath
-                RiskLevel = $details.RiskLevel
-                RiskColor = $details.RiskColor
-                SeverityColor = $details.SeverityColor
-                AppIcon = $details.AppIcon
+                AppName = $details['AppName']
+                AppPath = $details['AppPath']
+                ModuleName = $details['ModuleName']
+                ModulePath = $details['ModulePath']
+                RiskLevel = $details['RiskLevel']
+                RiskColor = $details['RiskColor']
+                SeverityColor = $details['SeverityColor']
+                AppIcon = $details['AppIcon']
                 EventCount = 1
                 Details = $details
             }
             
             $filteredEvents += $item
-            if ($details.RiskLevel -in @("Medium", "High", "Danger")) {
-                $riskyCount++
-            }
         }
         
         # Remove duplicates and count occurrences
-        $groupedEvents = $filteredEvents | Group-Object -Property AppName, AppPath
+        $groupedEvents = $filteredEvents | Group-Object -Property AppName, AppPath, Id
         $script:baseEvents = $groupedEvents | ForEach-Object {
             $firstEvent = $_.Group | Sort-Object TimeCreated -Descending | Select-Object -First 1
             [PSCustomObject]@{
@@ -627,8 +735,8 @@ function Load-Events {
         
         $totalEventsText.Text = "Total: $($events.Count)"
         $suspiciousEventsText.Text = "Medium+ Risk: $riskyCount"
-        $filteredEventsText.Text = "Showing: $($script:currentFilteredEvents.Count)"
-        $statusText.Text = "✅ Loaded $($events.Count) total events ($riskyCount medium+ risk)"
+        $filteredEventsText.Text = "Showing: $($script:currentFilteredEvents.Count) (Defender: $defenderCount)"
+        $statusText.Text = "✅ Loaded $($events.Count) events ($riskyCount medium+ risk, $defenderCount Defender events)"
     }
     catch {
         $statusText.Text = "❌ Error loading events: $($_.Exception.Message)"
